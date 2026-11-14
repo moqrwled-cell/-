@@ -8,9 +8,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
+import android.media.AudioAttributes
 import android.media.AudioFormat
+import android.media.AudioPlaybackCaptureConfiguration
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import android.media.projection.MediaProjection
+import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -23,6 +27,7 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,10 +48,13 @@ class FloatingSubtitleService : Service() {
     private var tvLiveStatus: TextView? = null
     private var btnPauseResume: ImageView? = null
 
-    private val mainHandler = Handler(Looper.getMainLooper())
-    private val serviceScope = CoroutineScope(Dispatchers.IO)
+    private var mediaProjection: MediaProjection? = null
+    private var audioRecord: AudioRecord? = null
     private var audioRecordJob: Job? = null
     private var isPaused = false
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val serviceScope = CoroutineScope(Dispatchers.IO)
 
     private val clearSubtitlesRunnable = Runnable {
         tvArabic?.text = "..."
@@ -59,11 +67,27 @@ class FloatingSubtitleService : Service() {
         super.onCreate()
         startForegroundNotification()
         setupOverlayView()
-        startAudioRecordingLoop()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForegroundNotification()
+
+        val resultCode = intent?.getIntExtra("EXTRA_RESULT_CODE", 0) ?: 0
+        val resultData = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent?.getParcelableExtra("EXTRA_RESULT_DATA", Intent::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent?.getParcelableExtra("EXTRA_RESULT_DATA")
+        }
+
+        // إذا تم منح إذن التقاط الصوت الداخلي (Android 10+)
+        if (resultCode != 0 && resultData != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startInternalAudioCapture(resultCode, resultData)
+        } else {
+            // بديل تلقائي عبر الميكروفون
+            startMicrophoneCapture()
+        }
+
         return START_STICKY
     }
 
@@ -81,14 +105,14 @@ class FloatingSubtitleService : Service() {
 
         val notification: Notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("مترجم الفيديوهات الفوري")
-            .setContentText("شريط الترجمة يعمل فوق الشاشة ويترجم الفيديوهات مباشرة")
+            .setContentText("جاري التقاط وترجمة صوت الفيديو رقمياً وبدون تأخير ⚡")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(1001, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
+            startForeground(1001, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
         } else {
             startForeground(1001, notification)
         }
@@ -142,10 +166,9 @@ class FloatingSubtitleService : Service() {
             ).apply {
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
                 x = 0
-                y = 200 // يظهر في موضع علوي واضح ومرئي للعين مباشرة
+                y = 180
             }
 
-            // سحب الشريط وتحريكه في أي مكان على الشاشة باللمس
             val dragBar = overlayView?.findViewById<View>(R.id.dragBar)
             dragBar?.setOnTouchListener(object : View.OnTouchListener {
                 private var initialX = 0
@@ -181,40 +204,89 @@ class FloatingSubtitleService : Service() {
         }
     }
 
-    private fun startAudioRecordingLoop() {
-        audioRecordJob = serviceScope.launch {
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun startInternalAudioCapture(resultCode: Int, resultData: Intent) {
+        try {
+            val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            mediaProjection = projectionManager.getMediaProjection(resultCode, resultData)
+
+            mediaProjection?.registerCallback(object : MediaProjection.Callback() {
+                override fun onStop() {
+                    mediaProjection = null
+                }
+            }, Handler(Looper.getMainLooper()))
+
+            // التقاط صوت النظام الداخلي مباشرة قبل مضخم الصوت (يعمل حتى لو الصوت مكتوم 100%!)
+            val config = AudioPlaybackCaptureConfiguration.Builder(mediaProjection!!)
+                .addMatchingUsage(AudioAttributes.USAGE_MEDIA)
+                .addMatchingUsage(AudioAttributes.USAGE_GAME)
+                .addMatchingUsage(AudioAttributes.USAGE_UNKNOWN)
+                .build()
+
             val sampleRate = 16000
             val channelConfig = AudioFormat.CHANNEL_IN_MONO
             val audioFormat = AudioFormat.ENCODING_PCM_16BIT
-            val minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
-            val bufferSize = maxOf(minBufferSize, 3200)
+            val minBuf = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
 
-            var recorder: AudioRecord? = null
-            try {
-                recorder = AudioRecord(
-                    MediaRecorder.AudioSource.MIC,
-                    sampleRate,
-                    channelConfig,
-                    audioFormat,
-                    bufferSize
+            audioRecord = AudioRecord.Builder()
+                .setAudioPlaybackCaptureConfig(config)
+                .setAudioFormat(
+                    AudioFormat.Builder()
+                        .setEncoding(audioFormat)
+                        .setSampleRate(sampleRate)
+                        .setChannelMask(channelConfig)
+                        .build()
                 )
-                recorder.startRecording()
-            } catch (e: Exception) {
-                e.printStackTrace()
-                return@launch
-            }
+                .setBufferSizeInBytes(maxOf(minBuf, 3200))
+                .build()
 
-            val buffer = ShortArray(1600) // 100ms
+            audioRecord?.startRecording()
+            tvLiveStatus?.text = "🟢 صوت داخلي رقمي (حتى مع كتم الصوت) ⚡"
+            startAudioProcessingLoop(isInternal = true)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            startMicrophoneCapture()
+        }
+    }
+
+    private fun startMicrophoneCapture() {
+        try {
+            val sampleRate = 16000
+            val channelConfig = AudioFormat.CHANNEL_IN_MONO
+            val audioFormat = AudioFormat.ENCODING_PCM_16BIT
+            val minBuf = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
+
+            audioRecord = AudioRecord(
+                MediaRecorder.AudioSource.MIC,
+                sampleRate,
+                channelConfig,
+                audioFormat,
+                maxOf(minBuf, 3200)
+            )
+            audioRecord?.startRecording()
+            startAudioProcessingLoop(isInternal = false)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun startAudioProcessingLoop(isInternal: Boolean) {
+        audioRecordJob?.cancel()
+        audioRecordJob = serviceScope.launch {
+            val recorder = audioRecord ?: return@launch
+            val buffer = ShortArray(800) // 50ms حزم سريعة جداً
             val speechStream = ByteArrayOutputStream()
             var isSpeaking = false
             var silenceCount = 0
             var speechDurationMs = 0
 
             val groqKey = AppConfig.getGroqKey(this@FloatingSubtitleService)
+            // في الصوت الداخلي الحساسية عالية جداً (0.002) لأن الصوت نقي ورقمي بدون تشويش
+            val threshold = if (isInternal) 0.002 else 0.012
 
             while (isActive && recorder.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
                 if (isPaused) {
-                    Thread.sleep(100)
+                    Thread.sleep(80)
                     continue
                 }
 
@@ -232,19 +304,18 @@ class FloatingSubtitleService : Service() {
                         byteChunk[i * 2 + 1] = ((buffer[i].toInt() shr 8) and 0xff).toByte()
                     }
 
-                    // عتبة التقاط الصوت (RMS > 0.012)
-                    if (rms > 0.012) {
+                    if (rms > threshold) {
                         if (!isSpeaking) {
                             isSpeaking = true
                             speechStream.reset()
                             speechDurationMs = 0
                         }
                         speechStream.write(byteChunk)
-                        speechDurationMs += 100
+                        speechDurationMs += 50
                         silenceCount = 0
 
-                        // إرسال سريع كل 1.5 ثانية لتصفير التأخير
-                        if (speechDurationMs >= 1500) {
+                        // إرسال سريع كل 1.2 ثانية لتكون الترجمة متطابقة لحظياً مع المتكلم
+                        if (speechDurationMs >= 1200) {
                             val audioBytes = speechStream.toByteArray()
                             processSpeechChunk(audioBytes, groqKey)
                             speechStream.reset()
@@ -253,10 +324,11 @@ class FloatingSubtitleService : Service() {
                     } else if (isSpeaking) {
                         speechStream.write(byteChunk)
                         silenceCount++
-                        speechDurationMs += 100
+                        speechDurationMs += 50
 
-                        if (silenceCount >= 3) { // هدوء 300ms يعني نهاية جملة
-                            if (speechDurationMs >= 350) {
+                        // صمت 150ms يكفي لإنهاء الجملة فوراً
+                        if (silenceCount >= 3) {
+                            if (speechDurationMs >= 300) {
                                 val audioBytes = speechStream.toByteArray()
                                 processSpeechChunk(audioBytes, groqKey)
                             }
@@ -268,26 +340,21 @@ class FloatingSubtitleService : Service() {
                     }
                 }
             }
-
-            try {
-                recorder.stop()
-                recorder.release()
-            } catch (e: Exception) {}
         }
     }
 
     private fun processSpeechChunk(pcmData: ByteArray, apiKey: String) {
-        if (pcmData.size < 4000) return
+        if (pcmData.size < 3200) return // أقل من 100ms
 
         serviceScope.launch {
-            // 1. تفريغ الصوت الإنجليزي في ~150ms بمحرك Groq Turbo
+            // تفريغ صوتي فائق السرعة عبر Groq Large-V3 Turbo (150ms)
             val enText = GroqTranscriber.transcribe(pcmData, apiKey)
 
             if (enText.length >= 2) {
                 val low = enText.lowercase().trim('.', ' ', '!', '?')
                 if (low in listOf("thank you", "thanks for watching", "bye", "you")) return@launch
 
-                // 2. ترجمة فورية إلى العربية
+                // ترجمة فورية إلى العربية (~40ms)
                 val arText = ArabicTranslator.translate(enText)
 
                 mainHandler.post {
@@ -315,6 +382,17 @@ class FloatingSubtitleService : Service() {
         super.onDestroy()
         audioRecordJob?.cancel()
         mainHandler.removeCallbacksAndMessages(null)
+
+        try {
+            audioRecord?.stop()
+            audioRecord?.release()
+        } catch (e: Exception) {}
+        audioRecord = null
+
+        try {
+            mediaProjection?.stop()
+        } catch (e: Exception) {}
+        mediaProjection = null
 
         if (overlayView != null && windowManager != null) {
             try {

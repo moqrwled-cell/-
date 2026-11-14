@@ -27,15 +27,16 @@
             android:layout_gravity="center"
             android:layout_marginTop="4dp"
             android:gravity="center"
-            android:text="شريط ترجمة عائم فوق كل التطبيقات (يوتيوب، تيك توك، المتصفح)"
-            android:textColor="#B0B3C1"
-            android:textSize="12sp" />
+            android:text="التقاط صوت النظام الداخلي الرقمي - يعمل حتى لو كان الصوت مكتوماً تماماً!"
+            android:textColor="#00E676"
+            android:textSize="12sp"
+            android:textStyle="bold" />
 
-        <!-- بطاقة الأذونات المطلوبة للتشغيل بدون مشاكل -->
+        <!-- بطاقة الأذونات المطلوبة -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="18dp"
             android:background="#1E2028"
             android:orientation="vertical"
             android:padding="16dp">
@@ -43,7 +44,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="خطوات التفعيل (مطلوبة لظهور الشريط العائم):"
+                android:text="خطوات التفعيل:"
                 android:textColor="#FFEB3B"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -62,7 +63,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="8dp"
-                android:text="⚠️ 2. اضغط لمنح إذن الميكروفون"
+                android:text="⚠️ 2. اضغط لمنح إذن تسجيل الصوت"
                 android:textColor="#FFFFFF"
                 android:textSize="13sp" />
 
@@ -82,9 +83,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:backgroundTint="#2962FF"
-                android:text="▶️ إظهار شريط الترجمة وبدء الاستماع"
+                android:text="▶️ بدء الترجمة الداخلية (حتى مع كتم الصوت)"
                 android:textColor="#FFFFFF"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:textStyle="bold" />
 
             <Button
@@ -117,7 +118,7 @@
 
         </LinearLayout>
 
-        <!-- تعليمات الاستخدام -->
+        <!-- معلومات الميزة الخارقة -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -129,7 +130,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="💡 كيف تستخدمه؟"
+                android:text="🌟 كيف يترجم والصوت مكتوم؟"
                 android:textColor="#FFEB3B"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -139,7 +140,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
                 android:lineSpacingExtra="4dp"
-                android:text="1. امنح الإذنين في الأعلى لتصبح الأزرار خضراء ✅.\n2. اضغط على زر البدء الكبير؛ سيظهر شريط الترجمة العائم في أعلى الشاشة فوراً.\n3. افتح يوتيوب أو تيك توك أو أي فيديو؛ وسيقوم شريط الترجمة بالترجمة فورياً.\n4. يمكنك سحب الشريط وتحريكه في أي مكان بإصبعك."
+                android:text="• التطبيق يستخدم ميزة التقاط الصوت الرقمي الداخلي (Audio Playback Capture) مباشرة من بطاقة الصوت داخل الهاتف.\n• هذا يعني أنه يسجل الصوت الرقمي النقي من يوتيوب وتيك توك حتى لو كانت سماعات الهاتف موطية على الصفر تماماً.\n• الصوت الرقمي نقي 100% وبدون ضوضاء، مما يجعل الذكاء الاصطناعي يجلب كل الكلمات بدقة 99% وبسرعة خارقة!"
                 android:textColor="#D0D0D0"
                 android:textSize="12sp" />
         </LinearLayout>

@@ -1,8 +1,11 @@
 package com.livevideotranslator.app
 
 import android.Manifest
+import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -24,6 +27,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnStop: Button
     private lateinit var tvStatus: TextView
     private lateinit var cbBilingual: CheckBox
+
+    private val mediaProjectionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+            startFloatingService(result.resultCode, result.data!!)
+        } else {
+            // إذا رفض المستخدم أو ألغى، نبدأ بالوضع العادي
+            startFloatingService(0, null)
+        }
+    }
 
     private val micPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -73,18 +87,24 @@ class MainActivity : AppCompatActivity() {
 
         btnStart.setOnClickListener {
             if (!hasOverlayPermission()) {
-                Toast.makeText(this, "الرجاء الضغط على زر منح إذن الظهور فوق الشاشة أولاً", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "الرجاء منح إذن الظهور فوق الشاشة أولاً", Toast.LENGTH_LONG).show()
                 btnOverlayPerm.performClick()
                 return@setOnClickListener
             }
 
             if (!hasMicPermission()) {
-                Toast.makeText(this, "الرجاء الضغط على زر منح إذن الميكروفون أولاً", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "الرجاء منح إذن الصوت أولاً", Toast.LENGTH_LONG).show()
                 btnMicPerm.performClick()
                 return@setOnClickListener
             }
 
-            startFloatingService()
+            // طلب التقاط الصوت الداخلي للنظام (يعمل حتى لو الصوت مكتوم 100%)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                mediaProjectionLauncher.launch(projectionManager.createScreenCaptureIntent())
+            } else {
+                startFloatingService(0, null)
+            }
         }
 
         btnStop.setOnClickListener {
@@ -124,18 +144,24 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (hasMicPermission()) {
-            btnMicPerm.text = "✅ 2. إذن الميكروفون والصوت (ممنوح)"
+            btnMicPerm.text = "✅ 2. إذن تسجيل الصوت (ممنوح)"
             btnMicPerm.setBackgroundColor(0xFF2E7D32.toInt())
             btnMicPerm.isEnabled = false
         } else {
-            btnMicPerm.text = "⚠️ 2. اضغط لمنح إذن الميكروفون"
+            btnMicPerm.text = "⚠️ 2. اضغط لمنح إذن الصوت"
             btnMicPerm.setBackgroundColor(0xFFC62828.toInt())
             btnMicPerm.isEnabled = true
         }
     }
 
-    private fun startFloatingService() {
-        val intent = Intent(this, FloatingSubtitleService::class.java)
+    private fun startFloatingService(resultCode: Int, resultData: Intent?) {
+        val intent = Intent(this, FloatingSubtitleService::class.java).apply {
+            if (resultCode != 0 && resultData != null) {
+                putExtra("EXTRA_RESULT_CODE", resultCode)
+                putExtra("EXTRA_RESULT_DATA", resultData)
+            }
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
         } else {
@@ -147,9 +173,9 @@ class MainActivity : AppCompatActivity() {
         tvStatus.text = "الحالة: شريط الترجمة يعمل فوق الشاشة بنجاح 🟢"
         tvStatus.setTextColor(0xFF00E676.toInt())
 
-        Toast.makeText(this, "شريط الترجمة ظاهر الآن فوق شاشتك! افتح أي فيديو", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "شريط الترجمة ظاهر الآن! شغّل الفيديو حتى لو كان الصوت مكتوماً", Toast.LENGTH_LONG).show()
 
-        // مغادرة التطبيق تلقائياً للشاشة الرئيسية
+        // مغادرة التطبيق للشاشة الرئيسية فوراً
         moveTaskToBack(true)
     }
 
