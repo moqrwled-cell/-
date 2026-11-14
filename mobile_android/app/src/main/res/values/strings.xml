@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Live Video Translator</string>
+    <string name="start_service">بدء الترجمة الفورية</string>
+    <string name="stop_service">إيقاف الترجمة</string>
+    <string name="overlay_permission_desc">الرجاء منح إذن الظهور فوق التطبيقات الأخرى لعرض شريط الترجمة</string>
+    <string name="capture_permission_desc">مطلوب إذن تسجيل صوت النظام الداخلي</string>
+</resources>

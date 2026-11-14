@@ -1,0 +1,24 @@
+# Local Config with Secrets
+desktop/config.json
+*.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+
+# Gradle & Android
+.gradle/
+build/
+*/build/
+*.apk
+*.aab
+local.properties
+.idea/
+*.iml
+
+# OS
+Thumbs.db
+Desktop.ini

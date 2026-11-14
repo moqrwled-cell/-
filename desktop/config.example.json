@@ -1,0 +1,19 @@
+{
+    "engine_mode": "auto",
+    "groq_api_key": "YOUR_GROQ_API_KEY_HERE",
+    "model_name": "tiny.en",
+    "cpu_threads": 4,
+    "vad_threshold": 0.012,
+    "min_speech_duration": 0.25,
+    "silence_duration": 0.25,
+    "max_speech_duration": 1.6,
+    "display_mode": "bilingual",
+    "font_size": 22,
+    "text_color": "#FFEB3B",
+    "bg_opacity": 190,
+    "click_through": false,
+    "window_width": 860,
+    "window_height": 95,
+    "window_x": -1,
+    "window_y": -1
+}
