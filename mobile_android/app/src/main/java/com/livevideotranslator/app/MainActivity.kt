@@ -10,7 +10,6 @@ import android.provider.Settings
 import android.view.View
 import android.widget.Button
 import android.widget.CheckBox
-import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,88 +18,86 @@ import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var btnOverlayPerm: Button
+    private lateinit var btnMicPerm: Button
     private lateinit var btnStart: Button
     private lateinit var btnStop: Button
     private lateinit var tvStatus: TextView
-    private lateinit var etGroqKey: EditText
     private lateinit var cbBilingual: CheckBox
 
-    private val permissionLauncher = registerForActivityResult(
+    private val micPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val audioGranted = permissions[Manifest.permission.RECORD_AUDIO] ?: false
-        if (audioGranted) {
-            checkOverlayAndStart()
-        } else {
-            Toast.makeText(this, "مطلوب إذن الميكروفون للاستماع لصوت الفيديو", Toast.LENGTH_LONG).show()
-        }
+    ) {
+        updatePermissionButtons()
     }
 
     private val overlayPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
-        if (checkOverlayPermission()) {
-            startTranslationService()
-        } else {
-            Toast.makeText(this, "مطلوب إذن الظهور فوق التطبيقات لعرض شريط الترجمة", Toast.LENGTH_LONG).show()
-        }
+        updatePermissionButtons()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        btnOverlayPerm = findViewById(R.id.btnOverlayPerm)
+        btnMicPerm = findViewById(R.id.btnMicPerm)
         btnStart = findViewById(R.id.btnStart)
         btnStop = findViewById(R.id.btnStop)
         tvStatus = findViewById(R.id.tvStatus)
-        etGroqKey = findViewById(R.id.etGroqKey)
         cbBilingual = findViewById(R.id.cbBilingual)
 
-        etGroqKey.setText(AppConfig.getGroqKey(this))
         cbBilingual.isChecked = AppConfig.isBilingual(this)
-
         cbBilingual.setOnCheckedChangeListener { _, isChecked ->
             AppConfig.setBilingual(this, isChecked)
         }
 
-        btnStart.setOnClickListener {
-            val key = etGroqKey.text.toString().trim()
-            AppConfig.setGroqKey(this, key)
+        btnOverlayPerm.setOnClickListener {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")
+                )
+                overlayPermissionLauncher.launch(intent)
+            }
+        }
 
-            checkPermissionsAndStart()
+        btnMicPerm.setOnClickListener {
+            val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            micPermissionLauncher.launch(permissions.toTypedArray())
+        }
+
+        btnStart.setOnClickListener {
+            if (!hasOverlayPermission()) {
+                Toast.makeText(this, "الرجاء الضغط على زر منح إذن الظهور فوق الشاشة أولاً", Toast.LENGTH_LONG).show()
+                btnOverlayPerm.performClick()
+                return@setOnClickListener
+            }
+
+            if (!hasMicPermission()) {
+                Toast.makeText(this, "الرجاء الضغط على زر منح إذن الميكروفون أولاً", Toast.LENGTH_LONG).show()
+                btnMicPerm.performClick()
+                return@setOnClickListener
+            }
+
+            startFloatingService()
         }
 
         btnStop.setOnClickListener {
-            stopTranslationService()
+            stopFloatingService()
         }
     }
 
-    private fun checkPermissionsAndStart() {
-        val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
-        }
-
-        val missing = permissions.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }
-
-        if (missing.isNotEmpty()) {
-            permissionLauncher.launch(missing.toTypedArray())
-        } else {
-            checkOverlayAndStart()
-        }
+    override fun onResume() {
+        super.onResume()
+        updatePermissionButtons()
     }
 
-    private fun checkOverlayAndStart() {
-        if (!checkOverlayPermission()) {
-            requestOverlayPermission()
-        } else {
-            startTranslationService()
-        }
-    }
-
-    private fun checkOverlayPermission(): Boolean {
+    private fun hasOverlayPermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             Settings.canDrawOverlays(this)
         } else {
@@ -108,17 +105,36 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun requestOverlayPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:$packageName")
-            )
-            overlayPermissionLauncher.launch(intent)
+    private fun hasMicPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun updatePermissionButtons() {
+        if (hasOverlayPermission()) {
+            btnOverlayPerm.text = "✅ 1. إذن الظهور فوق الشاشة (ممنوح)"
+            btnOverlayPerm.setBackgroundColor(0xFF2E7D32.toInt())
+            btnOverlayPerm.isEnabled = false
+        } else {
+            btnOverlayPerm.text = "⚠️ 1. اضغط لمنح إذن الظهور فوق التطبيقات"
+            btnOverlayPerm.setBackgroundColor(0xFFC62828.toInt())
+            btnOverlayPerm.isEnabled = true
+        }
+
+        if (hasMicPermission()) {
+            btnMicPerm.text = "✅ 2. إذن الميكروفون والصوت (ممنوح)"
+            btnMicPerm.setBackgroundColor(0xFF2E7D32.toInt())
+            btnMicPerm.isEnabled = false
+        } else {
+            btnMicPerm.text = "⚠️ 2. اضغط لمنح إذن الميكروفون"
+            btnMicPerm.setBackgroundColor(0xFFC62828.toInt())
+            btnMicPerm.isEnabled = true
         }
     }
 
-    private fun startTranslationService() {
+    private fun startFloatingService() {
         val intent = Intent(this, FloatingSubtitleService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
@@ -126,31 +142,25 @@ class MainActivity : AppCompatActivity() {
             startService(intent)
         }
 
-        updateUiState(true)
-        Toast.makeText(this, "تم تفعيل الترجمة! سيظهر الشريط فوق شاشة الهاتف مباشرة", Toast.LENGTH_LONG).show()
+        btnStart.visibility = View.GONE
+        btnStop.visibility = View.VISIBLE
+        tvStatus.text = "الحالة: شريط الترجمة يعمل فوق الشاشة بنجاح 🟢"
+        tvStatus.setTextColor(0xFF00E676.toInt())
 
-        // الانتقال تلقائياً لخارج التطبيق ليبقى شريط الترجمة فوق يوتيوب أو المتصفح
+        Toast.makeText(this, "شريط الترجمة ظاهر الآن فوق شاشتك! افتح أي فيديو", Toast.LENGTH_LONG).show()
+
+        // مغادرة التطبيق تلقائياً للشاشة الرئيسية
         moveTaskToBack(true)
     }
 
-    private fun stopTranslationService() {
+    private fun stopFloatingService() {
         val intent = Intent(this, FloatingSubtitleService::class.java)
         stopService(intent)
-        updateUiState(false)
-        Toast.makeText(this, "تم إيقاف الترجمة", Toast.LENGTH_SHORT).show()
-    }
 
-    private fun updateUiState(running: Boolean) {
-        if (running) {
-            btnStart.visibility = View.GONE
-            btnStop.visibility = View.VISIBLE
-            tvStatus.text = "الحالة: شريط الترجمة نشط فوق كافة التطبيقات 🟢"
-            tvStatus.setTextColor(0xFF00E676.toInt())
-        } else {
-            btnStart.visibility = View.VISIBLE
-            btnStop.visibility = View.GONE
-            tvStatus.text = "الحالة: متوقف"
-            tvStatus.setTextColor(0xFFFFC107.toInt())
-        }
+        btnStart.visibility = View.VISIBLE
+        btnStop.visibility = View.GONE
+        tvStatus.text = "الحالة: متوقف"
+        tvStatus.setTextColor(0xFFFFC107.toInt())
+        Toast.makeText(this, "تم إغلاق شريط الترجمة", Toast.LENGTH_SHORT).show()
     }
 }

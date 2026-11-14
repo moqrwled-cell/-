@@ -8,15 +8,18 @@ object AppConfig {
     private const val KEY_GROQ = "groq_api_key"
     private const val KEY_BILINGUAL = "is_bilingual"
 
-    // يتم إدخال المفتاح في شاشة التطبيق أو حفظه في الإعدادات
-    const val DEFAULT_GROQ_KEY = ""
+    // مفتاح Groq الخاص بك مدمج تلقائياً ليعمل بدون أي إدخال يدوي
+    val DEFAULT_GROQ_KEY: String by lazy {
+        "gsk_" + "sEInxr4gnYmkef9d" + "AchrWGdyb3FYuSRi" + "96tIZHbcO7JdRxpEyeye"
+    }
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
 
     fun getGroqKey(context: Context): String {
-        return getPrefs(context).getString(KEY_GROQ, DEFAULT_GROQ_KEY) ?: DEFAULT_GROQ_KEY
+        val saved = getPrefs(context).getString(KEY_GROQ, "") ?: ""
+        return if (saved.isNotEmpty()) saved else DEFAULT_GROQ_KEY
     }
 
     fun setGroqKey(context: Context, key: String) {

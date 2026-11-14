@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/overlayRoot"
+    android:id="@+id/overlayCard"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
     android:background="@drawable/bg_floating_overlay"
+    android:elevation="10dp"
     android:orientation="vertical"
     android:padding="12dp">
 
-    <!-- شريط التحكم العلوي والسحب -->
+    <!-- شريط الرأس مع أزرار التحكم والسحب -->
     <LinearLayout
         android:id="@+id/dragBar"
         android:layout_width="match_parent"
@@ -22,25 +22,23 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="🟢 مترجم الشاشة مباشر"
+            android:text="🟢 مترجم الشاشة مباشر ⚡ (اسحب للتحريك)"
             android:textColor="#00E676"
             android:textSize="11sp"
             android:textStyle="bold" />
 
         <ImageView
             android:id="@+id/btnPauseResume"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_marginEnd="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_marginEnd="10dp"
             android:contentDescription="إيقاف مؤقت"
             android:src="@android:drawable/ic_media_pause" />
 
         <ImageView
             android:id="@+id/btnClose"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
             android:contentDescription="إغلاق"
             android:src="@android:drawable/ic_menu_close_clear_cancel" />
     </LinearLayout>
@@ -49,9 +47,9 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginBottom="6dp"
-        android:background="#20FFFFFF" />
+        android:background="#30FFFFFF" />
 
-    <!-- النص الإنجليزي الأصلي المسموع -->
+    <!-- النص الإنجليزي الأصلي -->
     <TextView
         android:id="@+id/tvEnglish"
         android:layout_width="match_parent"
@@ -69,10 +67,10 @@
         android:layout_marginTop="2dp"
         android:gravity="center"
         android:shadowColor="#FF000000"
-        android:shadowDx="1.5"
-        android:shadowDy="1.5"
+        android:shadowDx="2"
+        android:shadowDy="2"
         android:shadowRadius="4"
-        android:text="شريط الترجمة جاهز... شغّل أي فيديو"
+        android:text="🟢 شريط الترجمة جاهز - شغّل أي فيديو"
         android:textColor="#FFEB3B"
         android:textSize="18sp"
         android:textStyle="bold" />

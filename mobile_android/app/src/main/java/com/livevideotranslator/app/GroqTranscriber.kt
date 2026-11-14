@@ -6,14 +6,12 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import java.io.ByteArrayOutputStream
-import java.io.DataOutputStream
 import java.util.concurrent.TimeUnit
 
 object GroqTranscriber {
     private val client = OkHttpClient.Builder()
-        .connectTimeout(5, TimeUnit.SECONDS)
-        .readTimeout(5, TimeUnit.SECONDS)
+        .connectTimeout(4, TimeUnit.SECONDS)
+        .readTimeout(4, TimeUnit.SECONDS)
         .build()
 
     fun createWavFile(pcmData: ByteArray, sampleRate: Int = 16000, channels: Int = 1): ByteArray {
@@ -22,7 +20,7 @@ object GroqTranscriber {
         val byteRate = 16 * sampleRate * channels / 8
 
         val header = ByteArray(44)
-        header[0] = 'R'.code.toByte() // RIFF/WAVE header
+        header[0] = 'R'.code.toByte()
         header[1] = 'I'.code.toByte()
         header[2] = 'F'.code.toByte()
         header[3] = 'F'.code.toByte()
@@ -34,15 +32,15 @@ object GroqTranscriber {
         header[9] = 'A'.code.toByte()
         header[10] = 'V'.code.toByte()
         header[11] = 'E'.code.toByte()
-        header[12] = 'f'.code.toByte() // 'fmt ' chunk
+        header[12] = 'f'.code.toByte()
         header[13] = 'm'.code.toByte()
         header[14] = 't'.code.toByte()
         header[15] = ' '.code.toByte()
-        header[16] = 16 // 4 bytes: size of 'fmt ' chunk
+        header[16] = 16
         header[17] = 0
         header[18] = 0
         header[19] = 0
-        header[20] = 1 // format = 1 (PCM)
+        header[20] = 1
         header[21] = 0
         header[22] = channels.toByte()
         header[23] = 0
@@ -54,9 +52,9 @@ object GroqTranscriber {
         header[29] = ((byteRate shr 8) and 0xff).toByte()
         header[30] = ((byteRate shr 16) and 0xff).toByte()
         header[31] = ((byteRate shr 24) and 0xff).toByte()
-        header[32] = (channels * 16 / 8).toByte() // block align
+        header[32] = (channels * 16 / 8).toByte()
         header[33] = 0
-        header[34] = 16 // bits per sample
+        header[34] = 16
         header[35] = 0
         header[36] = 'd'.code.toByte()
         header[37] = 'a'.code.toByte()

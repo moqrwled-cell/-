@@ -27,11 +27,11 @@
             android:layout_gravity="center"
             android:layout_marginTop="4dp"
             android:gravity="center"
-            android:text="يظهر فوق شاشة هاتفك بالكامل ويترجم أي فيديو في (يوتيوب، تيك توك، المتصفح، تليجرام)"
+            android:text="شريط ترجمة عائم فوق كل التطبيقات (يوتيوب، تيك توك، المتصفح)"
             android:textColor="#B0B3C1"
             android:textSize="12sp" />
 
-        <!-- بطاقة التشغيل والتحكم -->
+        <!-- بطاقة الأذونات المطلوبة للتشغيل بدون مشاكل -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -40,12 +40,49 @@
             android:orientation="vertical"
             android:padding="16dp">
 
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="خطوات التفعيل (مطلوبة لظهور الشريط العائم):"
+                android:textColor="#FFEB3B"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnOverlayPerm"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="10dp"
+                android:text="⚠️ 1. اضغط لمنح إذن الظهور فوق التطبيقات"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/btnMicPerm"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="8dp"
+                android:text="⚠️ 2. اضغط لمنح إذن الميكروفون"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp" />
+
+        </LinearLayout>
+
+        <!-- بطاقة التشغيل الرئيسية -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="#1E2028"
+            android:orientation="vertical"
+            android:padding="16dp">
+
             <Button
                 android:id="@+id/btnStart"
                 android:layout_width="match_parent"
-                android:layout_height="54dp"
+                android:layout_height="56dp"
                 android:backgroundTint="#2962FF"
-                android:text="▶️ بدء الترجمة فوق الشاشة"
+                android:text="▶️ إظهار شريط الترجمة وبدء الاستماع"
                 android:textColor="#FFFFFF"
                 android:textSize="16sp"
                 android:textStyle="bold" />
@@ -53,8 +90,7 @@
             <Button
                 android:id="@+id/btnStop"
                 android:layout_width="match_parent"
-                android:layout_height="54dp"
-                android:layout_marginTop="8dp"
+                android:layout_height="56dp"
                 android:backgroundTint="#D32F2F"
                 android:text="⏹️ إيقاف شريط الترجمة"
                 android:textColor="#FFFFFF"
@@ -69,9 +105,19 @@
                 android:text="الحالة: متوقف"
                 android:textColor="#00E676"
                 android:textSize="13sp" />
+
+            <CheckBox
+                android:id="@+id/cbBilingual"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:checked="true"
+                android:text="عرض النص الإنجليزي بجانب الترجمة العربية"
+                android:textColor="#FFFFFF" />
+
         </LinearLayout>
 
-        <!-- معلومات التشغيل التلقائي المجاني -->
+        <!-- تعليمات الاستخدام -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -83,7 +129,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="💡 كيف يعمل؟"
+                android:text="💡 كيف تستخدمه؟"
                 android:textColor="#FFEB3B"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -92,49 +138,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:lineSpacingExtra="3dp"
-                android:text="• يعمل مجاناً وتلقائياً 100% بدون أي مفاتيح API عبر محرك أندرويد المدمج.\n• فور الضغط على زر البدء، سيظهر الشريط العائم فوق شاشتك وتستطيع فتح أي تطبيق لمشاهدة الفيديوهات.\n• يمكنك سحب وتحريك شريط الترجمة لأي مكان على الشاشة بإصبعك."
+                android:lineSpacingExtra="4dp"
+                android:text="1. امنح الإذنين في الأعلى لتصبح الأزرار خضراء ✅.\n2. اضغط على زر البدء الكبير؛ سيظهر شريط الترجمة العائم في أعلى الشاشة فوراً.\n3. افتح يوتيوب أو تيك توك أو أي فيديو؛ وسيقوم شريط الترجمة بالترجمة فورياً.\n4. يمكنك سحب الشريط وتحريكه في أي مكان بإصبعك."
                 android:textColor="#D0D0D0"
                 android:textSize="12sp" />
-        </LinearLayout>
-
-        <!-- خيارات إضافية -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:background="#1E2028"
-            android:orientation="vertical"
-            android:padding="16dp">
-
-            <CheckBox
-                android:id="@+id/cbBilingual"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:checked="true"
-                android:text="إظهار النص الإنجليزي بجانب الترجمة العربية"
-                android:textColor="#FFFFFF" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="مفتاح Groq API (اختياري للسرعة السحابية):"
-                android:textColor="#9E9E9E"
-                android:textSize="11sp" />
-
-            <EditText
-                android:id="@+id/etGroqKey"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:background="#282A36"
-                android:hint="اتركه فارغاً للتشغيل المجاني التلقائي"
-                android:padding="8dp"
-                android:textColor="#FFFFFF"
-                android:textColorHint="#50FFFFFF"
-                android:textSize="11sp" />
-
         </LinearLayout>
 
     </LinearLayout>
