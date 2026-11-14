@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId "com.livevideotranslator.app"
-        minSdk 29 // Android 10+ مطلوب لالتقاط صوت النظام الداخلي مباشرة
+        minSdk 29
         targetSdk 34
         versionCode 1
         versionName "1.0"
@@ -27,9 +27,6 @@ android {
     }
     kotlinOptions {
         jvmTarget = '17'
-    }
-    buildFeatures {
-        viewBinding true
     }
 }
 

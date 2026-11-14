@@ -79,7 +79,11 @@ class AudioCaptureService : Service() {
             .setSmallIcon(android.R.drawable.ic_media_play)
             .build()
 
-        startForeground(1002, notification)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(1002, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+        } else {
+            startForeground(1002, notification)
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
