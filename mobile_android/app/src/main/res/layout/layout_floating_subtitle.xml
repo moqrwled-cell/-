@@ -3,44 +3,65 @@
     android:id="@+id/overlayRoot"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_margin="8dp"
     android:background="@drawable/bg_floating_overlay"
     android:orientation="vertical"
     android:padding="12dp">
 
-    <!-- شريط السحب والأزرار -->
-    <RelativeLayout
+    <!-- شريط التحكم العلوي والسحب -->
+    <LinearLayout
+        android:id="@+id/dragBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="4dp">
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingBottom="6dp">
 
         <TextView
-            android:layout_width="wrap_content"
+            android:id="@+id/tvLiveStatus"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_alignParentStart="true"
-            android:text="مترجم الفيديو المباشر ⚡"
-            android:textColor="#80FFFFFF"
-            android:textSize="10sp" />
+            android:layout_weight="1"
+            android:text="🟢 مترجم الشاشة مباشر"
+            android:textColor="#00E676"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/btnPauseResume"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="إيقاف مؤقت"
+            android:src="@android:drawable/ic_media_pause" />
 
         <ImageView
             android:id="@+id/btnClose"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:layout_alignParentEnd="true"
-            android:src="@android:drawable/ic_menu_close_clear_cancel"
-            android:contentDescription="إغلاق" />
-    </RelativeLayout>
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="إغلاق"
+            android:src="@android:drawable/ic_menu_close_clear_cancel" />
+    </LinearLayout>
 
-    <!-- النص الإنجليزي الأصلي -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginBottom="6dp"
+        android:background="#20FFFFFF" />
+
+    <!-- النص الإنجليزي الأصلي المسموع -->
     <TextView
         android:id="@+id/tvEnglish"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:textColor="#E0E0E0"
+        android:textColor="#D0D0D0"
         android:textSize="13sp"
-        android:visibility="visible" />
+        android:visibility="gone" />
 
-    <!-- الترجمة العربية الرئيسية (أصفر واضح دائماً) -->
+    <!-- الترجمة العربية الرئيسية (أصفر بارز وظل أسود) -->
     <TextView
         android:id="@+id/tvArabic"
         android:layout_width="match_parent"
@@ -50,10 +71,10 @@
         android:shadowColor="#FF000000"
         android:shadowDx="1.5"
         android:shadowDy="1.5"
-        android:shadowRadius="3"
-        android:text="جاري الاستماع وترجمة الفيديو..."
+        android:shadowRadius="4"
+        android:text="شريط الترجمة جاهز... شغّل أي فيديو"
         android:textColor="#FFEB3B"
-        android:textSize="17sp"
+        android:textSize="18sp"
         android:textStyle="bold" />
 
 </LinearLayout>

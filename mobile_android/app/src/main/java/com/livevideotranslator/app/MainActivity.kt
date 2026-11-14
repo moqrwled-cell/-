@@ -1,9 +1,8 @@
 package com.livevideotranslator.app
 
-import android.app.Activity
-import android.content.Context
+import android.Manifest
 import android.content.Intent
-import android.media.projection.MediaProjectionManager
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -16,6 +15,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
 
@@ -25,16 +25,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etGroqKey: EditText
     private lateinit var cbBilingual: CheckBox
 
-    private var isRunning = false
-
-    private val mediaProjectionLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            startServices(result.resultCode, result.data!!)
+    private val permissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val audioGranted = permissions[Manifest.permission.RECORD_AUDIO] ?: false
+        if (audioGranted) {
+            checkOverlayAndStart()
         } else {
-            Toast.makeText(this, "تم رفض إذن التقاط الصوت الداخلي", Toast.LENGTH_SHORT).show()
-            updateUiState(false)
+            Toast.makeText(this, "مطلوب إذن الميكروفون للاستماع لصوت الفيديو", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -42,9 +40,9 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.StartActivityForResult()
     ) {
         if (checkOverlayPermission()) {
-            requestMediaProjection()
+            startTranslationService()
         } else {
-            Toast.makeText(this, "مطلوب إذن الظهور فوق التطبيقات لعرض الترجمة", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "مطلوب إذن الظهور فوق التطبيقات لعرض شريط الترجمة", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -58,7 +56,6 @@ class MainActivity : AppCompatActivity() {
         etGroqKey = findViewById(R.id.etGroqKey)
         cbBilingual = findViewById(R.id.cbBilingual)
 
-        // تحميل الإعدادات الحالية والمفتاح
         etGroqKey.setText(AppConfig.getGroqKey(this))
         cbBilingual.isChecked = AppConfig.isBilingual(this)
 
@@ -68,21 +65,38 @@ class MainActivity : AppCompatActivity() {
 
         btnStart.setOnClickListener {
             val key = etGroqKey.text.toString().trim()
-            if (key.isEmpty()) {
-                Toast.makeText(this, "الرجاء إدخال مفتاح Groq API", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
             AppConfig.setGroqKey(this, key)
 
-            if (!checkOverlayPermission()) {
-                requestOverlayPermission()
-            } else {
-                requestMediaProjection()
-            }
+            checkPermissionsAndStart()
         }
 
         btnStop.setOnClickListener {
-            stopServices()
+            stopTranslationService()
+        }
+    }
+
+    private fun checkPermissionsAndStart() {
+        val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        val missing = permissions.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (missing.isNotEmpty()) {
+            permissionLauncher.launch(missing.toTypedArray())
+        } else {
+            checkOverlayAndStart()
+        }
+    }
+
+    private fun checkOverlayAndStart() {
+        if (!checkOverlayPermission()) {
+            requestOverlayPermission()
+        } else {
+            startTranslationService()
         }
     }
 
@@ -104,51 +118,33 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun requestMediaProjection() {
-        val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        mediaProjectionLauncher.launch(projectionManager.createScreenCaptureIntent())
-    }
-
-    private fun startServices(resultCode: Int, resultData: Intent) {
-        // 1. تشغيل شريط الترجمة العائم
-        val floatingIntent = Intent(this, FloatingSubtitleService::class.java)
-        startService(floatingIntent)
-
-        // 2. تشغيل خدمة التقاط الصوت
-        val captureIntent = Intent(this, AudioCaptureService::class.java).apply {
-            action = AudioCaptureService.ACTION_START
-            putExtra(AudioCaptureService.EXTRA_RESULT_CODE, resultCode)
-            putExtra(AudioCaptureService.EXTRA_RESULT_DATA, resultData)
-        }
+    private fun startTranslationService() {
+        val intent = Intent(this, FloatingSubtitleService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(captureIntent)
+            startForegroundService(intent)
         } else {
-            startService(captureIntent)
+            startService(intent)
         }
 
         updateUiState(true)
-        Toast.makeText(this, "بدأت الترجمة! شغّل أي فيديو وسيظهر الشريط العائم", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "تم تفعيل الترجمة! سيظهر الشريط فوق شاشة الهاتف مباشرة", Toast.LENGTH_LONG).show()
+
+        // الانتقال تلقائياً لخارج التطبيق ليبقى شريط الترجمة فوق يوتيوب أو المتصفح
+        moveTaskToBack(true)
     }
 
-    private fun stopServices() {
-        val captureIntent = Intent(this, AudioCaptureService::class.java).apply {
-            action = AudioCaptureService.ACTION_STOP
-        }
-        startService(captureIntent)
-
-        val floatingIntent = Intent(this, FloatingSubtitleService::class.java)
-        stopService(floatingIntent)
-
+    private fun stopTranslationService() {
+        val intent = Intent(this, FloatingSubtitleService::class.java)
+        stopService(intent)
         updateUiState(false)
         Toast.makeText(this, "تم إيقاف الترجمة", Toast.LENGTH_SHORT).show()
     }
 
     private fun updateUiState(running: Boolean) {
-        isRunning = running
         if (running) {
             btnStart.visibility = View.GONE
             btnStop.visibility = View.VISIBLE
-            tvStatus.text = "الحالة: شريط الترجمة نشط ويستمع للفيديو ⚡"
+            tvStatus.text = "الحالة: شريط الترجمة نشط فوق كافة التطبيقات 🟢"
             tvStatus.setTextColor(0xFF00E676.toInt())
         } else {
             btnStart.visibility = View.VISIBLE
