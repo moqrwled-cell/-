@@ -1,78 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/overlayCard"
-    android:layout_width="match_parent"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/overlayContainer"
+    android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_floating_overlay"
-    android:elevation="10dp"
-    android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="4dp">
 
-    <!-- شريط الرأس مع أزرار التحكم والسحب -->
     <LinearLayout
-        android:id="@+id/dragBar"
-        android:layout_width="match_parent"
+        android:id="@+id/overlayCard"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingBottom="6dp">
+        android:background="@drawable/bg_floating_overlay"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingTop="7dp"
+        android:paddingEnd="26dp"
+        android:paddingBottom="7dp">
 
+        <!-- النص الإنجليزي الأصلي (مدمج وصغير) -->
         <TextView
-            android:id="@+id/tvLiveStatus"
-            android:layout_width="0dp"
+            android:id="@+id/tvEnglish"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="🟢 مترجم الشاشة مباشر ⚡ (اسحب للتحريك)"
-            android:textColor="#00E676"
-            android:textSize="11sp"
+            android:gravity="center"
+            android:maxWidth="320dp"
+            android:textColor="#D0D0D0"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
+        <!-- الترجمة العربية (عقد الكلام بدقة ومظهر أنيق) -->
+        <TextView
+            android:id="@+id/tvArabic"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:maxWidth="320dp"
+            android:shadowColor="#FF000000"
+            android:shadowDx="2"
+            android:shadowDy="2"
+            android:shadowRadius="4"
+            android:text="🟢 جاهز للترجمة..."
+            android:textColor="#FFEB3B"
+            android:textSize="16sp"
             android:textStyle="bold" />
 
-        <ImageView
-            android:id="@+id/btnPauseResume"
-            android:layout_width="26dp"
-            android:layout_height="26dp"
-            android:layout_marginEnd="10dp"
-            android:contentDescription="إيقاف مؤقت"
-            android:src="@android:drawable/ic_media_pause" />
-
-        <ImageView
-            android:id="@+id/btnClose"
-            android:layout_width="26dp"
-            android:layout_height="26dp"
-            android:contentDescription="إغلاق"
-            android:src="@android:drawable/ic_menu_close_clear_cancel" />
     </LinearLayout>
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginBottom="6dp"
-        android:background="#30FFFFFF" />
+    <!-- زر إغلاق دائري صغير وسهل الاستخدام -->
+    <ImageView
+        android:id="@+id/btnClose"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="2dp"
+        android:background="@drawable/bg_close_btn"
+        android:contentDescription="إغلاق"
+        android:padding="2dp"
+        android:src="@android:drawable/ic_menu_close_clear_cancel" />
 
-    <!-- النص الإنجليزي الأصلي -->
-    <TextView
-        android:id="@+id/tvEnglish"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:textColor="#D0D0D0"
-        android:textSize="13sp"
-        android:visibility="gone" />
-
-    <!-- الترجمة العربية الرئيسية (أصفر بارز وظل أسود) -->
-    <TextView
-        android:id="@+id/tvArabic"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:gravity="center"
-        android:shadowColor="#FF000000"
-        android:shadowDx="2"
-        android:shadowDy="2"
-        android:shadowRadius="4"
-        android:text="🟢 شريط الترجمة جاهز - شغّل أي فيديو"
-        android:textColor="#FFEB3B"
-        android:textSize="18sp"
-        android:textStyle="bold" />
-
-</LinearLayout>
+</FrameLayout>

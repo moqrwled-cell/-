@@ -9,13 +9,13 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="18dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
             android:text="مترجم الشاشة الفوري ⚡"
             android:textColor="#FFFFFF"
             android:textSize="22sp"
@@ -27,19 +27,19 @@
             android:layout_gravity="center"
             android:layout_marginTop="4dp"
             android:gravity="center"
-            android:text="التقاط صوت النظام الداخلي الرقمي - يعمل حتى لو كان الصوت مكتوماً تماماً!"
+            android:text="شريط مدمج على قد الكلام - لا يحجب الفيديو أبداً!"
             android:textColor="#00E676"
             android:textSize="12sp"
             android:textStyle="bold" />
 
-        <!-- بطاقة الأذونات المطلوبة -->
+        <!-- بطاقة الأذونات -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
+            android:layout_marginTop="16dp"
             android:background="#1E2028"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="14dp">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -52,20 +52,20 @@
             <Button
                 android:id="@+id/btnOverlayPerm"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="10dp"
+                android:layout_height="46dp"
+                android:layout_marginTop="8dp"
                 android:text="⚠️ 1. اضغط لمنح إذن الظهور فوق التطبيقات"
                 android:textColor="#FFFFFF"
-                android:textSize="13sp" />
+                android:textSize="12sp" />
 
             <Button
                 android:id="@+id/btnMicPerm"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="8dp"
+                android:layout_height="46dp"
+                android:layout_marginTop="6dp"
                 android:text="⚠️ 2. اضغط لمنح إذن تسجيل الصوت"
                 android:textColor="#FFFFFF"
-                android:textSize="13sp" />
+                android:textSize="12sp" />
 
         </LinearLayout>
 
@@ -73,17 +73,17 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="14dp"
             android:background="#1E2028"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="14dp">
 
             <Button
                 android:id="@+id/btnStart"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="54dp"
                 android:backgroundTint="#2962FF"
-                android:text="▶️ بدء الترجمة الداخلية (حتى مع كتم الصوت)"
+                android:text="▶️ إظهار شريط الترجمة وبدء الاستماع"
                 android:textColor="#FFFFFF"
                 android:textSize="15sp"
                 android:textStyle="bold" />
@@ -91,7 +91,7 @@
             <Button
                 android:id="@+id/btnStop"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="54dp"
                 android:backgroundTint="#D32F2F"
                 android:text="⏹️ إيقاف شريط الترجمة"
                 android:textColor="#FFFFFF"
@@ -102,7 +102,7 @@
                 android:id="@+id/tvStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="10dp"
                 android:text="الحالة: متوقف"
                 android:textColor="#00E676"
                 android:textSize="13sp" />
@@ -112,25 +112,25 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:checked="true"
+                android:checked="false"
                 android:text="عرض النص الإنجليزي بجانب الترجمة العربية"
                 android:textColor="#FFFFFF" />
 
         </LinearLayout>
 
-        <!-- معلومات الميزة الخارقة -->
+        <!-- اختصارات التحكم السريعة أثناء مشاهدة الفيديو -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="14dp"
             android:background="#1E2028"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="14dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🌟 كيف يترجم والصوت مكتوم؟"
+                android:text="✨ ميزات التحكم أثناء مشاهدة الفيديو:"
                 android:textColor="#FFEB3B"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -140,7 +140,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
                 android:lineSpacingExtra="4dp"
-                android:text="• التطبيق يستخدم ميزة التقاط الصوت الرقمي الداخلي (Audio Playback Capture) مباشرة من بطاقة الصوت داخل الهاتف.\n• هذا يعني أنه يسجل الصوت الرقمي النقي من يوتيوب وتيك توك حتى لو كانت سماعات الهاتف موطية على الصفر تماماً.\n• الصوت الرقمي نقي 100% وبدون ضوضاء، مما يجعل الذكاء الاصطناعي يجلب كل الكلمات بدقة 99% وبسرعة خارقة!"
+                android:text="• عقد الكلام تماماً: حجم الشريط يصغر ويكبر تلقائياً حسب طول الجملة ولا يغطي شاشتك.\n• سحب حر: المس الشريط وحركه إلى أي مكان في الشاشة لتشاهد الفيديو براحة.\n• انقر نقراً مزدوجاً (Double Tap): لتغيير حجم خط الترجمة فوراً (صغير / متوسط / كبير).\n• اضغط ضغطاً مطولاً (Long Press): لتغيير شفافية الشريط لرؤية الفيديو بوضوح من خلاله!"
                 android:textColor="#D0D0D0"
                 android:textSize="12sp" />
         </LinearLayout>

@@ -20,6 +20,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
+import android.view.GestureDetector
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -27,6 +28,7 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
@@ -41,24 +43,30 @@ class FloatingSubtitleService : Service() {
 
     private var windowManager: WindowManager? = null
     private var overlayView: View? = null
+    private var overlayCard: View? = null
     private var params: WindowManager.LayoutParams? = null
 
     private var tvEnglish: TextView? = null
     private var tvArabic: TextView? = null
-    private var tvLiveStatus: TextView? = null
-    private var btnPauseResume: ImageView? = null
 
     private var mediaProjection: MediaProjection? = null
     private var audioRecord: AudioRecord? = null
     private var audioRecordJob: Job? = null
-    private var isPaused = false
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val serviceScope = CoroutineScope(Dispatchers.IO)
 
-    private val clearSubtitlesRunnable = Runnable {
-        tvArabic?.text = "..."
-        tvEnglish?.text = ""
+    // أحجام الخط للتبديل السريع عند النقر المزدوج (صغير / متوسط / كبير)
+    private val fontSizes = floatArrayOf(14f, 17f, 21f)
+    private var fontIndex = 1
+
+    // مستويات الشفافية لرؤية الفيديو بوضوح تام (شبه شفاف / عالي الشفافية / داكن)
+    private val opacityLevels = floatArrayOf(0.75f, 0.40f, 0.95f)
+    private var opacityIndex = 0
+
+    private val autoShrinkRunnable = Runnable {
+        tvArabic?.text = "🟢"
+        tvEnglish?.visibility = View.GONE
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -80,11 +88,9 @@ class FloatingSubtitleService : Service() {
             intent?.getParcelableExtra("EXTRA_RESULT_DATA")
         }
 
-        // إذا تم منح إذن التقاط الصوت الداخلي (Android 10+)
         if (resultCode != 0 && resultData != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startInternalAudioCapture(resultCode, resultData)
         } else {
-            // بديل تلقائي عبر الميكروفون
             startMicrophoneCapture()
         }
 
@@ -105,7 +111,7 @@ class FloatingSubtitleService : Service() {
 
         val notification: Notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("مترجم الفيديوهات الفوري")
-            .setContentText("جاري التقاط وترجمة صوت الفيديو رقمياً وبدون تأخير ⚡")
+            .setContentText("شريط الترجمة يعمل فوق الشاشة بنقاء رقمي ⚡")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -127,27 +133,16 @@ class FloatingSubtitleService : Service() {
             windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
             overlayView = LayoutInflater.from(this).inflate(R.layout.layout_floating_subtitle, null)
 
+            overlayCard = overlayView?.findViewById(R.id.overlayCard)
             tvEnglish = overlayView?.findViewById(R.id.tvEnglish)
             tvArabic = overlayView?.findViewById(R.id.tvArabic)
-            tvLiveStatus = overlayView?.findViewById(R.id.tvLiveStatus)
-            btnPauseResume = overlayView?.findViewById(R.id.btnPauseResume)
+
+            // ضبط الحجم والشفافية الافتراضية
+            tvArabic?.textSize = fontSizes[fontIndex]
+            overlayCard?.alpha = opacityLevels[opacityIndex]
 
             overlayView?.findViewById<ImageView>(R.id.btnClose)?.setOnClickListener {
                 stopSelf()
-            }
-
-            btnPauseResume?.setOnClickListener {
-                if (isPaused) {
-                    isPaused = false
-                    btnPauseResume?.setImageResource(android.R.drawable.ic_media_pause)
-                    tvLiveStatus?.text = "🟢 مترجم الشاشة مباشر ⚡"
-                    tvLiveStatus?.setTextColor(0xFF00E676.toInt())
-                } else {
-                    isPaused = true
-                    btnPauseResume?.setImageResource(android.R.drawable.ic_media_play)
-                    tvLiveStatus?.text = "⏸️ متوقف مؤقتاً"
-                    tvLiveStatus?.setTextColor(0xFFFFC107.toInt())
-                }
             }
 
             val layoutType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -156,8 +151,9 @@ class FloatingSubtitleService : Service() {
                 WindowManager.LayoutParams.TYPE_PHONE
             }
 
+            // العرض والارتفاع WRAP_CONTENT ليكون حجم الشريط "عقد الكلام تماماً"!
             params = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 layoutType,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
@@ -166,42 +162,64 @@ class FloatingSubtitleService : Service() {
             ).apply {
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
                 x = 0
-                y = 180
+                y = 160 // يظهر في الثلث العلوي ويمكن سحبه لأي مكان
             }
 
-            val dragBar = overlayView?.findViewById<View>(R.id.dragBar)
-            dragBar?.setOnTouchListener(object : View.OnTouchListener {
-                private var initialX = 0
-                private var initialY = 0
-                private var initialTouchX = 0f
-                private var initialTouchY = 0f
-
-                override fun onTouch(v: View?, event: MotionEvent): Boolean {
-                    when (event.action) {
-                        MotionEvent.ACTION_DOWN -> {
-                            initialX = params?.x ?: 0
-                            initialY = params?.y ?: 0
-                            initialTouchX = event.rawX
-                            initialTouchY = event.rawY
-                            return true
-                        }
-                        MotionEvent.ACTION_MOVE -> {
-                            params?.x = initialX + (event.rawX - initialTouchX).toInt()
-                            params?.y = initialY + (event.rawY - initialTouchY).toInt()
-                            try {
-                                windowManager?.updateViewLayout(overlayView, params)
-                            } catch (e: Exception) {}
-                            return true
-                        }
-                    }
-                    return false
-                }
-            })
-
+            setupGestureAndDrag()
             windowManager?.addView(overlayView, params)
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    private fun setupGestureAndDrag() {
+        // كاشف الإيماءات: نقر مزدوج لتغيير الحجم، ضغط مطول لتغيير الشفافية لرؤية الفيديو بوضوح
+        val gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDoubleTap(e: MotionEvent): Boolean {
+                fontIndex = (fontIndex + 1) % fontSizes.size
+                tvArabic?.textSize = fontSizes[fontIndex]
+                Toast.makeText(this@FloatingSubtitleService, "تغيير حجم الخط: ${fontSizes[fontIndex].toInt()}sp", Toast.LENGTH_SHORT).show()
+                return true
+            }
+
+            override fun onLongPress(e: MotionEvent) {
+                opacityIndex = (opacityIndex + 1) % opacityLevels.size
+                overlayCard?.alpha = opacityLevels[opacityIndex]
+                val pct = (opacityLevels[opacityIndex] * 100).toInt()
+                Toast.makeText(this@FloatingSubtitleService, "شفافية الخلفية: $pct%", Toast.LENGTH_SHORT).show()
+            }
+        })
+
+        // سحب الشريط وتحريكه في أي مكان على الشاشة باللمس
+        overlayView?.setOnTouchListener(object : View.OnTouchListener {
+            private var initialX = 0
+            private var initialY = 0
+            private var initialTouchX = 0f
+            private var initialTouchY = 0f
+
+            override fun onTouch(v: View?, event: MotionEvent): Boolean {
+                gestureDetector.onTouchEvent(event)
+
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        initialX = params?.x ?: 0
+                        initialY = params?.y ?: 0
+                        initialTouchX = event.rawX
+                        initialTouchY = event.rawY
+                        return true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        params?.x = initialX + (event.rawX - initialTouchX).toInt()
+                        params?.y = initialY + (event.rawY - initialTouchY).toInt()
+                        try {
+                            windowManager?.updateViewLayout(overlayView, params)
+                        } catch (e: Exception) {}
+                        return true
+                    }
+                }
+                return false
+            }
+        })
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -216,7 +234,6 @@ class FloatingSubtitleService : Service() {
                 }
             }, Handler(Looper.getMainLooper()))
 
-            // التقاط صوت النظام الداخلي مباشرة قبل مضخم الصوت (يعمل حتى لو الصوت مكتوم 100%!)
             val config = AudioPlaybackCaptureConfiguration.Builder(mediaProjection!!)
                 .addMatchingUsage(AudioAttributes.USAGE_MEDIA)
                 .addMatchingUsage(AudioAttributes.USAGE_GAME)
@@ -241,7 +258,6 @@ class FloatingSubtitleService : Service() {
                 .build()
 
             audioRecord?.startRecording()
-            tvLiveStatus?.text = "🟢 صوت داخلي رقمي (حتى مع كتم الصوت) ⚡"
             startAudioProcessingLoop(isInternal = true)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -274,22 +290,16 @@ class FloatingSubtitleService : Service() {
         audioRecordJob?.cancel()
         audioRecordJob = serviceScope.launch {
             val recorder = audioRecord ?: return@launch
-            val buffer = ShortArray(800) // 50ms حزم سريعة جداً
+            val buffer = ShortArray(800) // 50ms
             val speechStream = ByteArrayOutputStream()
             var isSpeaking = false
             var silenceCount = 0
             var speechDurationMs = 0
 
             val groqKey = AppConfig.getGroqKey(this@FloatingSubtitleService)
-            // في الصوت الداخلي الحساسية عالية جداً (0.002) لأن الصوت نقي ورقمي بدون تشويش
             val threshold = if (isInternal) 0.002 else 0.012
 
             while (isActive && recorder.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
-                if (isPaused) {
-                    Thread.sleep(80)
-                    continue
-                }
-
                 val read = recorder.read(buffer, 0, buffer.size)
                 if (read > 0) {
                     var sum = 0.0
@@ -314,7 +324,7 @@ class FloatingSubtitleService : Service() {
                         speechDurationMs += 50
                         silenceCount = 0
 
-                        // إرسال سريع كل 1.2 ثانية لتكون الترجمة متطابقة لحظياً مع المتكلم
+                        // إرسال سريع كل 1.2 ثانية لتكون الترجمة سريعة جداً
                         if (speechDurationMs >= 1200) {
                             val audioBytes = speechStream.toByteArray()
                             processSpeechChunk(audioBytes, groqKey)
@@ -326,8 +336,7 @@ class FloatingSubtitleService : Service() {
                         silenceCount++
                         speechDurationMs += 50
 
-                        // صمت 150ms يكفي لإنهاء الجملة فوراً
-                        if (silenceCount >= 3) {
+                        if (silenceCount >= 3) { // صمت 150ms ينهي الجملة فوراً
                             if (speechDurationMs >= 300) {
                                 val audioBytes = speechStream.toByteArray()
                                 processSpeechChunk(audioBytes, groqKey)
@@ -344,17 +353,15 @@ class FloatingSubtitleService : Service() {
     }
 
     private fun processSpeechChunk(pcmData: ByteArray, apiKey: String) {
-        if (pcmData.size < 3200) return // أقل من 100ms
+        if (pcmData.size < 3200) return
 
         serviceScope.launch {
-            // تفريغ صوتي فائق السرعة عبر Groq Large-V3 Turbo (150ms)
             val enText = GroqTranscriber.transcribe(pcmData, apiKey)
 
             if (enText.length >= 2) {
                 val low = enText.lowercase().trim('.', ' ', '!', '?')
                 if (low in listOf("thank you", "thanks for watching", "bye", "you")) return@launch
 
-                // ترجمة فورية إلى العربية (~40ms)
                 val arText = ArabicTranslator.translate(enText)
 
                 mainHandler.post {
@@ -371,8 +378,9 @@ class FloatingSubtitleService : Service() {
                         tvEnglish?.visibility = View.GONE
                     }
 
-                    mainHandler.removeCallbacks(clearSubtitlesRunnable)
-                    mainHandler.postDelayed(clearSubtitlesRunnable, 7000)
+                    // إعادة ضبط مؤقت التقليص التلقائي عند انتهاء الكلام
+                    mainHandler.removeCallbacks(autoShrinkRunnable)
+                    mainHandler.postDelayed(autoShrinkRunnable, 5500)
                 }
             }
         }

@@ -7,8 +7,9 @@ object AppConfig {
     private const val PREFS_NAME = "LiveVideoTranslatorPrefs"
     private const val KEY_GROQ = "groq_api_key"
     private const val KEY_BILINGUAL = "is_bilingual"
+    private const val KEY_FONT_SIZE = "font_size"
+    private const val KEY_OPACITY = "overlay_opacity"
 
-    // مفتاح Groq الخاص بك مدمج تلقائياً ليعمل بدون أي إدخال يدوي
     val DEFAULT_GROQ_KEY: String by lazy {
         "gsk_" + "sEInxr4gnYmkef9d" + "AchrWGdyb3FYuSRi" + "96tIZHbcO7JdRxpEyeye"
     }
@@ -32,5 +33,21 @@ object AppConfig {
 
     fun setBilingual(context: Context, value: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_BILINGUAL, value).apply()
+    }
+
+    fun getFontSize(context: Context): Float {
+        return getPrefs(context).getFloat(KEY_FONT_SIZE, 16f)
+    }
+
+    fun setFontSize(context: Context, size: Float) {
+        getPrefs(context).edit().putFloat(KEY_FONT_SIZE, size).apply()
+    }
+
+    fun getOpacity(context: Context): Float {
+        return getPrefs(context).getFloat(KEY_OPACITY, 0.75f)
+    }
+
+    fun setOpacity(context: Context, opacity: Float) {
+        getPrefs(context).edit().putFloat(KEY_OPACITY, opacity).apply()
     }
 }
